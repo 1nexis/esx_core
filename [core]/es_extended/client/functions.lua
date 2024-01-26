@@ -57,28 +57,29 @@ function ESX.Progressbar(message, length, Options)
     print("[^1ERROR^7] ^5ESX Progressbar^7 is Missing!")
 end
 
-function ESX.ShowNotification(message, notifyType, length)
+function ESX.ShowNotification(message, type, length)
     if GetResourceState("esx_notify") ~= "missing" then
-        return exports["esx_notify"]:Notify(notifyType, length, message)
+        message = message:gsub("~(.-)~", "")
+        return exports['okokNotify']:Alert('System', message, 10000, 'info')
     end
 
     print("[^1ERROR^7] ^5ESX Notify^7 is Missing!")
 end
 
-function ESX.TextUI(message, notifyType)
-    if GetResourceState("esx_textui") ~= "missing" then
-        return exports["esx_textui"]:TextUI(message, notifyType)
+function ESX.TextUI(message, type)
+    if GetResourceState("okokTextUI") ~= "missing" then
+        return exports['okokTextUI']:Open(message, 'darkgrey', 'right')
     end
 
-    print("[^1ERROR^7] ^5ESX TextUI^7 is Missing!")
+    print("[^1ERROR^7] ^5okokTextUI^7 is Missing!")
 end
 
 function ESX.HideUI()
-    if GetResourceState("esx_textui") ~= "missing" then
-        return exports["esx_textui"]:HideUI()
+    if GetResourceState("okokTextUI") ~= "missing" then
+        return exports['okokTextUI']:Close()
     end
 
-    print("[^1ERROR^7] ^5ESX TextUI^7 is Missing!")
+    print("[^1ERROR^7] ^5okokTextUI^7 is Missing!")
 end
 
 function ESX.ShowAdvancedNotification(sender, subject, msg, textureDict, iconType, flash, saveToBrief, hudColorIndex)
@@ -115,7 +116,6 @@ function ESX.ShowFloatingHelpNotification(msg, coords)
     BeginTextCommandDisplayHelp("esxFloatingHelpNotification")
     EndTextCommandDisplayHelp(2, false, false, -1)
 end
-
 ESX.HashString = function(str)
     local format = string.format
     local upper = string.upper
@@ -133,6 +133,7 @@ function ESX.OpenContext(...)
     return contextAvailable and exports["esx_context"]:Open(...) or not contextAvailable and print("[^1ERROR^7] Tried to ^5open^7 context menu, but ^5esx_context^7 is missing!")
 end
 
+
 function ESX.PreviewContext(...)
     return contextAvailable and exports["esx_context"]:Preview(...) or not contextAvailable and print("[^1ERROR^7] Tried to ^5preview^7 context menu, but ^5esx_context^7 is missing!")
 end
@@ -144,6 +145,7 @@ end
 function ESX.RefreshContext(...)
     return contextAvailable and exports["esx_context"]:Refresh(...) or not contextAvailable and print("[^1ERROR^7] Tried to ^5Refresh^7 context menu, but ^5esx_context^7 is missing!")
 end
+
 
 ESX.RegisterInput = function(command_name, label, input_group, key, on_press, on_release)
     RegisterCommand(on_release ~= nil and "+" .. command_name or command_name, on_press)
@@ -575,6 +577,11 @@ function ESX.Game.GetVehicleProperties(vehicle)
         end
     end
 
+    local driftTyresEnabled = false
+    if type(GetDriftTyresEnabled(vehicle) == "boolean") and GetDriftTyresEnabled(vehicle) then
+        driftTyresEnabled = true
+    end
+
     local doorsBroken, windowsBroken, tyreBurst = {}, {}, {}
     local numWheels = tostring(GetVehicleNumberOfWheels(vehicle))
 
@@ -602,6 +609,14 @@ function ESX.Game.GetVehicleProperties(vehicle)
             doorsBroken[tostring(doorsId)] = IsVehicleDoorDamaged(vehicle, doorsId)
         end
     end
+
+    local vState = Entity(vehicle).state
+	local flameThrower = false
+	if vState and vState.flameThrower then
+		flameThrower = vState.flameThrower
+    end
+
+
 
     return {
         model = GetEntityModel(vehicle),
@@ -638,6 +653,7 @@ function ESX.Game.GetVehicleProperties(vehicle)
 
         neonColor = table.pack(GetVehicleNeonLightsColour(vehicle)),
         extras = extras,
+        driftTyresEnabled = driftTyresEnabled,
         tyreSmokeColor = table.pack(GetVehicleTyreSmokeColor(vehicle)),
 
         modSpoilers = GetVehicleMod(vehicle, 0),
@@ -693,6 +709,7 @@ function ESX.Game.GetVehicleProperties(vehicle)
         modWindows = GetVehicleMod(vehicle, 46),
         modLivery = GetVehicleMod(vehicle, 48) == -1 and GetVehicleLivery(vehicle) or GetVehicleMod(vehicle, 48),
         modLightbar = GetVehicleMod(vehicle, 49),
+        flameThrower = flameThrower,
     }
 end
 
@@ -774,6 +791,10 @@ function ESX.Game.SetVehicleProperties(vehicle, props)
         for extraId, enabled in pairs(props.extras) do
             SetVehicleExtra(vehicle, tonumber(extraId), enabled and 0 or 1)
         end
+    end
+
+    if props.driftTyresEnabled then
+        SetDriftTyresEnabled(vehicle, true)
     end
 
     if props.neonColor ~= nil then
@@ -931,6 +952,10 @@ function ESX.Game.SetVehicleProperties(vehicle, props)
         SetVehicleLivery(vehicle, props.modLivery)
     end
 
+    if props.flameThrower then
+		TriggerServerEvent('flametune:force', VehToNet(vehicle), props.flameThrower)
+	end
+
     if props.windowsBroken ~= nil then
         for k, v in pairs(props.windowsBroken) do
             if v then
@@ -1062,6 +1087,12 @@ function ESX.ShowInventory()
             }
         end
     end
+
+    elements[#elements + 1] = {
+        unselectable = true,
+        icon = "fas fa-weight",
+        title = "Current Weight: " .. currentWeight
+    }
 
     ESX.CloseContext()
 
@@ -1348,3 +1379,6 @@ function ESX.GetVehicleType(model)
 
     return types[vehicleType] or "automobile"
 end
+
+
+

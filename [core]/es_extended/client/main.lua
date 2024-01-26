@@ -69,7 +69,6 @@ AddEventHandler("esx:playerLoaded", function(xPlayer, isNew, skin)
     if metadata.health then
         SetEntityHealth(ESX.PlayerData.ped, metadata.health)
     end
-
     if metadata.armor and metadata.armor > 0 then
         SetPedArmour(ESX.PlayerData.ped, metadata.armor)
     end
@@ -520,7 +519,7 @@ if not Config.OxInventory then
     end)
 end
 
------ Admin commands from esx_adminplus
+----- Admin commnads from esx_adminplus
 
 RegisterNetEvent("esx:tpm")
 AddEventHandler("esx:tpm", function()
@@ -676,6 +675,7 @@ AddEventHandler("esx:noclip", function()
     end)
 end)
 
+
 RegisterNetEvent("esx:killPlayer")
 AddEventHandler("esx:killPlayer", function()
     SetEntityHealth(ESX.PlayerData.ped, 0)
@@ -711,4 +711,8 @@ end)
 
 AddStateBagChangeHandler("metadata", "player:" .. tostring(GetPlayerServerId(PlayerId())), function(_, key, val)
     ESX.SetPlayerData(key, val)
+end)
+
+AddEventHandler("esx:getSharedObject", function(cb)
+    cb(ESX)
 end)

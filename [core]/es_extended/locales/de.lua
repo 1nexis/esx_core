@@ -318,8 +318,8 @@ Locales["de"] = {
     ["component_scope_advanced"] = "Fortgeschrittenes Zielfernrohr",
     ["component_ironsights"] = "Ironsights",
 
-    ["component_suppressor"] = "Entstörer",
-    ["component_compensator"] = "Kompensator",
+	["component_suppressor"] = "Schalldämpfer",
+	["component_compensator"] = "Kompensator",
 
     ["component_muzzle_flat"] = "Flache Mündung",
     ["component_muzzle_tactical"] = "Taktische Mündung",

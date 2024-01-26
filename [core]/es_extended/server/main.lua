@@ -161,7 +161,7 @@ function loadESXPlayer(identifier, playerId, isNew)
 
     if not ESX.DoesJobExist(job, grade) then
         print(("[^3WARNING^7] Ignoring invalid job for ^5%s^7 [job: ^5%s^7, grade: ^5%s^7]"):format(identifier, job, grade))
-        job, grade = "unemployed", "0"
+        job, grade = "arbeitslos", "0"
     end
 
     jobObject, gradeObject = ESX.Jobs[job], ESX.Jobs[job].grades[grade]
@@ -300,14 +300,14 @@ function loadESXPlayer(identifier, playerId, isNew)
     print(('[^2INFO^0] Player ^5"%s"^0 has connected to the server. ID: ^5%s^7'):format(xPlayer.getName(), playerId))
 end
 
-AddEventHandler("chatMessage", function(playerId, _, message)
-    local xPlayer = ESX.GetPlayerFromId(playerId)
-    if message:sub(1, 1) == "/" and playerId > 0 then
-        CancelEvent()
-        local commandName = message:sub(1):gmatch("%w+")()
-        xPlayer.showNotification(TranslateCap("commanderror_invalidcommand", commandName))
-    end
-end)
+--[[ AddEventHandler('chatMessage', function(playerId, _, message)
+	local xPlayer = ESX.GetPlayerFromId(playerId)
+	if message:sub(1, 1) == '/' and playerId > 0 then
+		CancelEvent()
+		local commandName = message:sub(1):gmatch("%w+")()
+		xPlayer.showNotification(TranslateCap('commanderror_invalidcommand', commandName))
+	end
+end) ]]
 
 AddEventHandler("playerDropped", function(reason)
     local playerId = source
@@ -665,6 +665,10 @@ AddEventHandler("txAdmin:events:serverShuttingDown", function()
     Core.SavePlayers()
 end)
 
+AddEventHandler("esx:getSharedObject", function(cb)
+	cb(ESX)
+end)
+
 local DoNotUse = {
     ["essentialmode"] = true,
     ["es_admin2"] = true,
@@ -686,10 +690,18 @@ AddEventHandler("onResourceStart", function(key)
         print(("[^1ERROR^7] WE STOPPED A RESOURCE THAT WILL BREAK ^1ESX^7, PLEASE REMOVE ^5%s^7"):format(key))
     end
 end)
-
 for key in pairs(DoNotUse) do
     if GetResourceState(key) == "started" or GetResourceState(key) == "starting" then
         StopResource(key)
         print(("[^1ERROR^7] WE STOPPED A RESOURCE THAT WILL BREAK ^1ESX^7, PLEASE REMOVE ^5%s^7"):format(key))
     end
 end
+
+CreateThread(function()
+while true do
+	Wait(15 * 60000)
+	for _, xPlayer in pairs(ESX.GetExtendedPlayers()) do
+		exports['ak4y-battlepass']:battlepassAddXp(xPlayer, 50)
+	end
+end
+end)
