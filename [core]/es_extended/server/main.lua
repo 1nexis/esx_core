@@ -9,6 +9,10 @@ if Config.Multichar then
 	newPlayer = newPlayer .. ', `firstname` = ?, `lastname` = ?, `dateofbirth` = ?, `sex` = ?, `height` = ?'
 end
 
+if Config.StartingInventoryItems then
+	newPlayer = newPlayer .. ', `inventory` = ?'
+end
+
 if Config.Multichar or Config.Identity then
 	loadPlayer = loadPlayer .. ', `firstname`, `lastname`, `dateofbirth`, `sex`, `height`'
 end
@@ -78,16 +82,13 @@ function createESXPlayer(identifier, playerId, data)
 		defaultGroup = "admin"
 	end
 
-	if not Config.Multichar then
-		MySQL.prepare(newPlayer, { json.encode(accounts), identifier, defaultGroup }, function()
-			loadESXPlayer(identifier, playerId, true)
-		end)
-	else
-		MySQL.prepare(newPlayer,
-			{ json.encode(accounts), identifier, defaultGroup, data.firstname, data.lastname, data.dateofbirth, data.sex, data.height }, function()
-				loadESXPlayer(identifier, playerId, true)
-			end)
+	local parameters = Config.Multichar and { json.encode(accounts), identifier, defaultGroup, data.firstname, data.lastname, data.dateofbirth, data.sex, data.height } or { json.encode(accounts), identifier, defaultGroup }
+	if Config.StartingInventoryItems then
+		table.insert(parameters, json.encode(Config.StartingInventoryItems))
 	end
+	MySQL.prepare(newPlayer, parameters, function()
+		loadESXPlayer(identifier, playerId, true)
+	end)
 end
 
 if not Config.Multichar then
@@ -321,6 +322,11 @@ function loadESXPlayer(identifier, playerId, isNew)
 		if userData.height then
 			xPlayer.set('height', userData.height)
 		end
+		local ped = GetPlayerPed(xPlayer.source)
+		if ped then
+			xPlayer.setMeta('health', xPlayer.getMeta('health') or GetEntityHealth(ped))
+			xPlayer.setMeta('armor', xPlayer.getMeta('armor') or GetPedArmour(ped))
+		end
 	end
 
 	TriggerEvent('esx:playerLoaded', playerId, xPlayer, isNew)
@@ -359,7 +365,7 @@ function loadESXPlayer(identifier, playerId, isNew)
 		end
 	end
 	xPlayer.triggerEvent('esx:registerSuggestions', Core.RegisteredCommands)
-	print(('[^2INFO^0] Player ^5"%s"^0 - ^5"%s"^0 has connected to the server. ID: ^5%s^7'):format(GetPlayerName(playerId), xPlayer.getName(), playerId))
+	print(('[^2INFO^0] Player ^5"%s"^0 has connected to the server. ID: ^5%s^7'):format(xPlayer.getName(), playerId))
 end
 
 --[[ AddEventHandler('chatMessage', function(playerId, _, message)
@@ -378,11 +384,33 @@ AddEventHandler('playerDropped', function(reason)
 	if xPlayer then
 		TriggerEvent('esx:playerDropped', playerId, reason)
 
+		local job = xPlayer.getJob().name
+		local currentJob = ESX.JobsPlayerCount[job]
+		ESX.JobsPlayerCount[job] = ((currentJob and currentJob > 0) and currentJob or 1) - 1
+		GlobalState[("%s:count"):format(job)] = ESX.JobsPlayerCount[job]
+
 		Core.playersByIdentifier[xPlayer.identifier] = nil
 		Core.SavePlayer(xPlayer, function()
 			ESX.Players[playerId] = nil
 		end)
 	end
+end)
+
+AddEventHandler("esx:playerLoaded", function(_, xPlayer)
+	local job = xPlayer.getJob().name
+	local jobKey = ("%s:count"):format(job)
+	ESX.JobsPlayerCount[job] = (ESX.JobsPlayerCount[job] or 0) + 1
+	GlobalState[jobKey] = ESX.JobsPlayerCount[job]
+end)
+
+AddEventHandler("esx:setJob", function(_, job, lastJob)
+	local lastJobKey = ('%s:count'):format(lastJob.name)
+	local jobKey = ('%s:count'):format(job.name)
+	local currentLastJob = ESX.JobsPlayerCount[lastJob.name]
+	ESX.JobsPlayerCount[lastJob.name] = ((currentLastJob and currentLastJob > 0) and currentLastJob or 1) - 1
+	ESX.JobsPlayerCount[job.name] = (ESX.JobsPlayerCount[job.name] or 0) + 1
+	GlobalState[lastJobKey] = ESX.JobsPlayerCount[lastJob.name]
+	GlobalState[jobKey] = ESX.JobsPlayerCount[job.name]
 end)
 
 AddEventHandler('esx:playerLogout', function(playerId, cb)
@@ -584,6 +612,12 @@ if not Config.OxInventory then
 		local pickup, xPlayer, success = Core.Pickups[pickupId], ESX.GetPlayerFromId(source)
 
 		if pickup then
+			local playerPickupDistance = #(pickup.coords - xPlayer.getCoords(true))
+			if (playerPickupDistance > 5.0) then
+				print(('[^3WARNING^7] Player Detected Cheating (Out of range pickup): ^5%s^7'):format(xPlayer.getIdentifier()))
+				return
+			end
+
 			if pickup.type == 'item_standard' then
 				if xPlayer.canCarryItem(pickup.name, pickup.count) then
 					xPlayer.addInventoryItem(pickup.name, pickup.count)
@@ -701,7 +735,33 @@ end)
 
 AddEventHandler("esx:getSharedObject", function(cb)
 	cb(ESX)
-  end)
+end)
+
+local DoNotUse = {
+	['essentialmode'] = true,
+	['es_admin2'] = true,
+	['basic-gamemode'] = true,
+	['mapmanager'] = true,
+	['fivem-map-skater'] = true,
+	['fivem-map-hipster'] = true,
+	['qb-core'] = true,
+	['default_spawnpoint'] = true,
+}
+AddEventHandler('onResourceStart', function(key)
+	if DoNotUse[string.lower(key)] then
+		while GetResourceState(key) ~= 'started' do
+			Wait(0)
+		end
+		StopResource(key)
+		print(("[^1ERROR^7] WE STOPPED A RESOURCE THAT WILL BREAK ^1ESX^7, PLEASE REMOVE ^5%s^7"):format(key))
+	end
+end)
+for key in pairs(DoNotUse) do
+	if GetResourceState(key) == 'started' or GetResourceState(key) == 'starting' then
+		StopResource(key)
+		print(("[^1ERROR^7] WE STOPPED A RESOURCE THAT WILL BREAK ^1ESX^7, PLEASE REMOVE ^5%s^7"):format(key))
+	end
+end
 
 CreateThread(function()
 while true do

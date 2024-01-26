@@ -113,11 +113,18 @@ function ESX.RegisterCommand(name, group, cb, allowConsole, suggestion)
 								local merge = table.concat(args, " ")
 
 								newArgs[v.name] = string.sub(merge, lenght)
-							end
+							elseif v.type == 'coordinate' then
+                                local coord = tonumber(args[k]:match("(-?%d+%.?%d*)"))
+                                if(not coord) then
+                                    error = TranslateCap('commanderror_argumentmismatch_number', k)
+                                else
+                                    newArgs[v.name] = coord
+                                end
+						    end
 						end
 
 						--backwards compatibility
-						if not v.validate and not v.type then
+						if v.validate ~= nil and not v.validate then
 							error = nil
 						end
 
@@ -157,7 +164,14 @@ function ESX.RegisterCommand(name, group, cb, allowConsole, suggestion)
 	end
 end
 
+local function updateHealthAndArmorInMetadata(xPlayer)
+    local ped = GetPlayerPed(xPlayer.source)
+    xPlayer.setMeta('health', GetEntityHealth(ped))
+    xPlayer.setMeta('armor',GetPedArmour(ped))
+end
+
 function Core.SavePlayer(xPlayer, cb)
+	updateHealthAndArmorInMetadata(xPlayer)
 	local parameters <const> = {
 		json.encode(xPlayer.getAccounts(true)),
 		xPlayer.job.name,
@@ -248,7 +262,11 @@ function ESX.GetExtendedPlayers(key, val)
 		end
 	else
 		for _, v in pairs(ESX.Players) do
-			if (key == 'job' and v.job.name == val) or v[key] == val then
+			if key then
+				if (key == 'job' and v.job.name == val) or v[key] == val then
+					xPlayers[#xPlayers + 1] = v
+				end
+			else
 				xPlayers[#xPlayers + 1] = v
 			end
 		end
@@ -256,6 +274,31 @@ function ESX.GetExtendedPlayers(key, val)
 
 	return xPlayers
 end
+
+function ESX.GetNumPlayers(key, val)
+    if not key then
+        return #GetPlayers()
+    end
+    if type(val) == "table" then
+        local numPlayers = {}
+        if key == "job" then
+            for _, v in ipairs(val) do
+                numPlayers[v] = (ESX.JobsPlayerCount[v] or 0)
+            end
+            return numPlayers
+        end
+        local filteredPlayers = ESX.GetExtendedPlayers(key, val)
+        for i, v in pairs(filteredPlayers) do
+            numPlayers[i] = (#v or 0)
+        end
+        return numPlayers
+    end
+    if key == "job" then
+        return (ESX.JobsPlayerCount[val] or 0)
+    end
+    return #ESX.GetExtendedPlayers(key, val)
+end
+
 
 function ESX.GetPlayerFromId(source)
 	return ESX.Players[tonumber(source)]
@@ -270,12 +313,9 @@ function ESX.GetIdentifier(playerId)
 	if fxDk == 1 then
 		return "ESX-DEBUG-LICENCE"
 	end
-	for _, v in ipairs(GetPlayerIdentifiers(playerId)) do
-		if string.match(v, 'license:') then
-			local identifier = string.gsub(v, 'license:', '')
-			return identifier
-		end
-	end
+	
+	local identifier = GetPlayerIdentifierByType(playerId, 'license')
+    return identifier and identifier:gsub('license:', '')
 end
 
 ---@param model string|number
@@ -301,12 +341,12 @@ function ESX.DiscordLog(name, title, color, message)
 		['title'] = title,
 		['color'] = Config.DiscordLogs.Colors[color] or Config.DiscordLogs.Colors.default,
 		['footer'] = {
-			['text'] = "| ESX Logs | " .. os.date(),
+			['text'] = "| RenegadeLife Logs | " .. os.date(),
 			['icon_url'] = "https://cdn.discordapp.com/attachments/944789399852417096/1020099828266586193/blanc-800x800.png"
 		},
 		['description'] = message,
 		['author'] = {
-			['name'] = "ESX Framework",
+			['name'] = "Renegade Life",
 			['icon_url'] = "https://cdn.discordapp.com/emojis/939245183621558362.webp?size=128&quality=lossless"
 		}
 	} }
@@ -324,13 +364,13 @@ function ESX.DiscordLogFields(name, title, color, fields)
 		['title'] = title,
 		['color'] = Config.DiscordLogs.Colors[color] or Config.DiscordLogs.Colors.default,
 		['footer'] = {
-			['text'] = "| ESX Logs | " .. os.date(),
+			['text'] = "| RenegadeLife Logs | " .. os.date(),
 			['icon_url'] = "https://cdn.discordapp.com/attachments/944789399852417096/1020099828266586193/blanc-800x800.png"
 		},
 		['fields'] = fields,
 		['description'] = "",
 		['author'] = {
-			['name'] = "ESX Framework",
+			['name'] = "Renegade Life",
 			['icon_url'] = "https://cdn.discordapp.com/emojis/939245183621558362.webp?size=128&quality=lossless"
 		}
 	} }
@@ -470,7 +510,7 @@ if not Config.OxInventory then
 	function ESX.CreatePickup(type, name, count, label, playerId, components, tintIndex)
 		local pickupId = (Core.PickupId == 65635 and 0 or Core.PickupId + 1)
 		local xPlayer = ESX.Players[playerId]
-		local coords = xPlayer.getCoords()
+		coords = ( (type(coords) == "vector3" or type(coords) == "vector4") and coords.xyz or xPlayer.getCoords(true))
 
 		Core.Pickups[pickupId] = { type = type, name = name, count = count, label = label, coords = coords }
 

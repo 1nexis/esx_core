@@ -1,6 +1,7 @@
 ESX = {}
 ESX.Players = {}
 ESX.Jobs = {}
+ESX.JobsPlayerCount = {}
 ESX.Items = {}
 Core = {}
 Core.UsableItemsCallbacks = {}
@@ -26,8 +27,9 @@ end
 
 local function StartDBSync()
 	CreateThread(function()
+		local interval <const> = 10 * 60 * 1000
 		while true do
-			Wait(10 * 60 * 1000)
+			Wait(interval)
 			Core.SavePlayers()
 		end
 	end)
@@ -107,45 +109,4 @@ AddEventHandler('esx:refreshJobs', function()
 			end
 		end)
 	end)
-end)
-
-
-RegisterServerEvent('esx:addFraktion')
-AddEventHandler('esx:addFraktion', function(job, label, grade_name, grade_label)
-	if ESX.DoesJobExist(job, 0) then
-		print("^6[ERROR]^0 job (fracation) already exists")
-		return
-	else
-		ESX.Jobs[job] = {
-			name = job,
-			label = label,
-			type = 'fraktion',
-			whitelisted = 0,
-			grades = {
-				['0'] = {
-					job_name = job,
-					grade = 0,
-					name = grade_name,
-					label = grade_label,
-					salary = 0,
-					skin_male = '{}',
-					skin_female = '{}',
-				}
-			}
-		}
-		return true
-	end
-end)
-
-RegisterServerEvent('esx:reloadFraktion')
-AddEventHandler('esx:reloadFraktion', function(fraktion, grades)
-	if not fraktion or not grades or not ESX.Jobs[fraktion] then
-		print("^6[ERROR:SERVER]^0 error while reloading fraction grades")
-		return false
-	end
-
-	ESX.Jobs[fraktion].grades = {}
-	for r,p in pairs(grades) do
-		ESX.Jobs[fraktion].grades[tostring(p.grade)] = p
-	end
 end)

@@ -5,14 +5,18 @@ fx_version 'adamant'
 game 'gta5'
 description 'ES Extended'
 lua54 'yes'
-version '1.10.1'
+version '1.10.2'
 
 shared_scripts {
 	'locale.lua',
 	'locales/*.lua',
-
 	'config.lua',
 	'config.weapons.lua',
+	'@ox_lib/init.lua',
+}
+
+ox_libs {
+    'logger',
 }
 
 server_scripts {
