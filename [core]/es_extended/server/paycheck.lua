@@ -1,11 +1,11 @@
 function StartPayCheck()
-    CreateThread(function()
-        while true do
-            Wait(Config.PaycheckInterval)
-            for player, xPlayer in pairs(ESX.Players) do
-                local jobLabel = xPlayer.job.label
-                local job = xPlayer.job.grade_name
-                local salary = xPlayer.job.grade_salary
+  CreateThread(function()
+    while true do
+      Wait(Config.PaycheckInterval)
+      for player, xPlayer in pairs(ESX.Players) do
+        local jobLabel = xPlayer.job.label
+        local job = xPlayer.job.grade_name
+        local salary = xPlayer.job.grade_salary
 
         if salary > 0 then
           if job == 'arbeitslos' then -- unemployed
@@ -66,5 +66,7 @@ function StartPayCheck()
                 TriggerClientEvent('okokNotify:Alert', xPlayer.source, "Gehalt", "Du hast dein Gehalt in höhe von "..salary.."$ erhalten.", 8000, 'payment')
           end
         end
-    end)
+      end
+    end
+  end)
 end

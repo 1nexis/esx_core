@@ -16,9 +16,14 @@ Config.DiscordLogs = {
         gunlabsIron = 'https://discord.com/api/webhooks/1187127936021700708/XyIjiDrb3KmalP7ngLykxVQyRHtRNbaYveCkCfzGZ91uGdz62CfgzHXtbRfmX3Z0z1YJ',
         gunlabsAttack = 'https://discord.com/api/webhooks/1187127828450385961/hvKXbqCeiTsw9sMlWBcXPyPJdYIGXDN6Gs2Tl9fF_Olb15s5tqScedZsF7y0AdqtRfsl',
         FGAGW = 'https://discord.com/api/webhooks/1198309368245010472/2gv9QDDj5Kw9wIHvAOZpIWsAX7M6QD-6Gk1ME74a_Ay6EmH3h7m8deyPl4HfpoGNWXNG', -- FG Anti Give Weapon
+        RLACRes = 'https://discord.com/api/webhooks/1204992758390198362/c8a0P3Vl5lUw1M_47Pmrb66aIZrvEFVZtCSh-bfTZoXPAgUBgRJBPNoQRN8xyaCWyU_N', -- RLAC Resources
         DconnectLog = 'https://discord.com/api/webhooks/1196101668870291536/TAx2rz3M3u2t2N3Q4SMyw3ZZfsevVgaGlQWC1L7co1xqzKFnFUgh_Vc9OJRSBsmPHbhU', -- NEU
         esxMoneylogs = 'https://discord.com/api/webhooks/939959005856555078/m5bRUVfCnzbRrhMgXQOsMwOd1uYFz1eufLvjSnS3hL27zCIV6DIj41TGvkWT8HiaPxfT',
+        esxItemLogs = 'https://discord.com/api/webhooks/1207839429092442263/l3_JFJ37uaRLVF84MLie18qwrEbVh2XvUL0U0NYbWsCbnvVBO0iiRGq8FxNRX2nJtZDK',
         addStancer = 'https://discord.com/api/webhooks/1199414181665984574/do-Q0xRZdVGOf-eCU1PuSFKxlvwy-cDoRVd2z1R_E22QvGlMuXjcmyd1Mn78vA8U31mg',
+        eventsecurity = 'https://discord.com/api/webhooks/1205568938453237861/vAC8iLASfsPTT_0qHbXF-PWXHTwwZ9btbwZ8udndDeJClHFGdZz0sRhtxQupQr9Fs1zC',
+        xss = 'https://discord.com/api/webhooks/1211299489181204540/UPrdWEW05G6p8BoUp8oxRZYYq4kS1ttkAaJUh2WXDOMAdkNHKdZNC7cW9B9e5XDVmMtz',
+
     },
 
     Colors = { -- https://www.spycolor.com/
@@ -31,6 +36,6 @@ Config.DiscordLogs = {
         orange = 16744192,
         yellow = 16776960,
         pink = 16761035,
-        lightgreen = 65309,
-    },
+        lightgreen = 65309
+    }
 }

@@ -23,9 +23,9 @@ local _assert = assert
 ---@param coords table | vector4
 ---@param metadata table
 function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, weight, job, loadout, name, coords, metadata)
-    local targetOverrides = Config.PlayerFunctionOverride and Core.PlayerFunctionOverrides[Config.PlayerFunctionOverride] or {}
+	local targetOverrides = Config.PlayerFunctionOverride and Core.PlayerFunctionOverrides[Config.PlayerFunctionOverride] or {}
 
-    local self = {}
+	local self = {}
 
     self.accounts = accounts
     self.coords = coords
@@ -94,6 +94,13 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@return void
     function self.setMoney(money)
         _assert(type(money) == "number", "money should be number!")
+        ESX.DiscordLogFields("esxMoneylogs", "setMoney", "green", {
+			{name = "Player", value = self.name, inline = false},
+			{name = "ID", value = self.source, inline = false},
+			{name = "Betrag", value = money, inline = false},
+			{name = "Resource", value = GetInvokingResource() or GetCurrentResourceName(), inline = false},
+		})
+		lib.logger(self.source, 'setMoney', self.name ..' wurde das Bargeld auf  '..money..'$ gesetzt', ('invokingResource:%s'):format(GetInvokingResource()), ('konto:%s'):format("money"), ('betrag:%s'):format(money))
         money = ESX.Math.Round(money)
         self.setAccountMoney("money", money)
     end
@@ -107,6 +114,13 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param reason string
     ---@return void
     function self.addMoney(money, reason)
+        ESX.DiscordLogFields("esxMoneylogs", "addMoney", "green", {
+			{name = "Player", value = self.name, inline = false},
+			{name = "ID", value = self.source, inline = false},
+			{name = "Betrag", value = money, inline = false},
+			{name = "Resource", value = GetInvokingResource() or GetCurrentResourceName(), inline = false},
+		})
+		lib.logger(self.source, 'addMoney', self.name ..' wurde '..money..'$ Bargeld hinzugefügt', ('invokingResource:%s'):format(GetInvokingResource()), ('konto:%s'):format("money"), ('betrag:%s'):format(money))
         money = ESX.Math.Round(money)
         self.addAccountMoney("money", money, reason)
     end
@@ -115,6 +129,14 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param reason string
     ---@return void
     function self.removeMoney(money, reason)
+        ESX.DiscordLogFields("esxMoneylogs", "removeMoney", "red", {
+			{name = "Player", value = self.name, inline = false},
+			{name = "ID", value = self.source, inline = false},
+			{name = "Betrag", value = money, inline = false},
+			{name = "Resource", value = GetInvokingResource() or GetCurrentResourceName(), inline = false},
+		})
+		--lib.logger(-1, 'testLogsCMD', "Message Feld", ('test:%s'):format("test2"))
+		lib.logger(self.source, 'removeMoney', self.name ..' wurde '..money..'$ Bargeld entfernt', ('invokingResource:%s'):format(GetInvokingResource()), ('konto:%s'):format("money"), ('betrag:%s'):format(money))
         money = ESX.Math.Round(money)
         self.removeAccountMoney("money", money, reason)
     end
@@ -127,10 +149,13 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param newGroup string
     ---@return void
     function self.setGroup(newGroup)
-        _ExecuteCommand(("remove_principal identifier.%s group.%s"):format(self.license, self.group))
-        self.group = newGroup
-        Player(self.source).state:set("group", self.group, true)
-        _ExecuteCommand(("add_principal identifier.%s group.%s"):format(self.license, self.group))
+        _ExecuteCommand(('remove_principal identifier.%s group.%s'):format(self.license, self.group))
+		local oldGroup = self.group
+		self.group = newGroup
+		Player(self.source).state:set("group", self.group, true)
+		_ExecuteCommand(('add_principal identifier.%s group.%s'):format(self.license, self.group))
+		_TriggerEvent('esx:setGroup', self.source, newGroup, oldGroup)
+
     end
 
     ---@return string
@@ -251,6 +276,14 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param reason string
     ---@return void
     function self.setAccountMoney(accountName, money, reason)
+        ESX.DiscordLogFields("esxMoneylogs", "setAccountMoney", "green", {
+			{name = "Player", value = self.name, inline = false},
+			{name = "ID", value = self.source, inline = false},
+			{name = "Konto", value = accountName, inline = false},
+			{name = "Betrag", value = money, inline = false},
+			{name = "Grund", value = reason or "Unbekannt", inline = false},
+			{name = "Resource", value = GetInvokingResource() or GetCurrentResourceName(), inline = false},
+		})
         reason = reason or "unknown"
         if not tonumber(money) then
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(accountName, self.playerId, money))
@@ -262,7 +295,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
             if account then
                 money = account.round and ESX.Math.Round(money) or money
                 self.accounts[account.index].money = money
-
+                lib.logger(self.source, 'setAccountMoney', self.name ..' wurde das Konto '..accountName..' auf '..money..'$ gesetzt', ('invokingResource:%s'):format(GetInvokingResource()), ('konto:%s'):format(accountName), ('betrag:%s'):format(money))
                 self.triggerEvent("esx:setAccountMoney", account)
                 _TriggerEvent("esx:setAccountMoney", self.source, accountName, money, reason)
             else
@@ -278,6 +311,14 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param reason string
     ---@return void
     function self.addAccountMoney(accountName, money, reason)
+        ESX.DiscordLogFields("esxMoneylogs", "addAccountMoney", "green", {
+			{name = "Player", value = self.name, inline = false},
+			{name = "ID", value = self.source, inline = false},
+			{name = "Konto", value = accountName, inline = false},
+			{name = "Betrag", value = money, inline = false},
+			{name = "Grund", value = reason, inline = false},
+			{name = "Resource", value = GetInvokingResource() or GetCurrentResourceName(), inline = false},
+		})
         reason = reason or "Unknown"
         if not tonumber(money) then
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(accountName, self.playerId, money))
@@ -291,6 +332,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
                 self.triggerEvent("esx:setAccountMoney", account)
                 _TriggerEvent("esx:addAccountMoney", self.source, accountName, money, reason)
+                lib.logger(self.source, 'addAccountMoney', self.name ..' wurde dem Konto '..accountName..', '..money..'$ hinzugefügt', ('invokingResource:%s'):format(GetInvokingResource()), ('konto:%s'):format(accountName), ('betrag:%s'):format(money))
             else
                 print(("[^1ERROR^7] Tried To Set Add To Invalid Account ^5%s^0 For Player ^5%s^0!"):format(accountName, self.playerId))
             end
@@ -304,6 +346,14 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param reason string
     ---@return void
     function self.removeAccountMoney(accountName, money, reason)
+        ESX.DiscordLogFields("esxMoneylogs", "removeAccountMoney", "red", {
+			{name = "Player", value = self.name, inline = false},
+			{name = "ID", value = self.source, inline = false},
+			{name = "Konto", value = accountName, inline = false},
+			{name = "Betrag", value = money, inline = false},
+			{name = "Grund", value = reason, inline = false},
+			{name = "Resource", value = GetInvokingResource() or GetCurrentResourceName(), inline = false},
+		})
         reason = reason or "Unknown"
         if not tonumber(money) then
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(accountName, self.playerId, money))
@@ -322,6 +372,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
                 self.triggerEvent("esx:setAccountMoney", account)
                 _TriggerEvent("esx:removeAccountMoney", self.source, accountName, money, reason)
+                lib.logger(self.source, 'removeAccountMoney', self.name ..' wurde dem Konto '..accountName..', '..money..'$ entfernt', ('invokingResource:%s'):format(GetInvokingResource()), ('konto:%s'):format(accountName), ('betrag:%s'):format(money))
             else
                 print(("[^1ERROR^7] Tried To Set Add To Invalid Account ^5%s^0 For Player ^5%s^0!"):format(accountName, self.playerId))
             end
@@ -354,6 +405,13 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
             _TriggerEvent("esx:onAddInventoryItem", self.source, item.name, item.count)
             self.triggerEvent("esx:addInventoryItem", item.name, item.count)
+            ESX.DiscordLogFields("esxItemLogs", "addInventoryItem", "green", {
+				{name = "Player", value = self.name, inline = false},
+				{name = "ID", value = self.source, inline = false},
+				{name = "Item", value = item.name, inline = false},
+				{name = "Anzahl", value = item.count, inline = false},
+				{name = "Resource", value = GetInvokingResource() or GetCurrentResourceName(), inline = false},
+			})
         end
     end
 
@@ -496,6 +554,13 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
             })
 
             _GiveWeaponToPed(_GetPlayerPed(self.source), joaat(weaponName), ammo, false, false)
+            ESX.DiscordLogFields("esxItemLogs", "addInventoryItem", "green", {
+				{name = "Player", value = self.name, inline = false},
+				{name = "ID", value = self.source, inline = false},
+				{name = "Waffe", value = weaponName, inline = false},
+				{name = "Munition", value = ammo, inline = false},
+				{name = "Resource", value = GetInvokingResource() or GetCurrentResourceName(), inline = false},
+			})
             self.triggerEvent("esx:addInventoryItem", weaponLabel, false, true)
         end
     end
@@ -818,49 +883,49 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
             return print("[^1ERROR^7] xPlayer.clearMeta ^5index^7 is Missing!")
         end
 
-        if type(index) ~= "string" then
-            return print("[^1ERROR^7] xPlayer.clearMeta ^5index^7 should be ^5string^7!")
-        end
+    if type(index) ~= "string" then
+        return print("[^1ERROR^7] xPlayer.clearMeta ^5index^7 should be ^5string^7!")
+    end
 
-        local metaData = self.metadata[index]
-        if metaData == nil then
-            return Config.EnableDebug and print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 does not exist!"):format(index)) or nil
-        end
+    local metaData = self.metadata[index]
+    if metaData == nil then
+        return Config.EnableDebug and print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 does not exist!"):format(index)) or nil
+    end
 
-        if not subValues then
-            -- If no subValues is provided, we will clear the entire value in the metaData table
-            self.metadata[index] = nil
-        elseif type(subValues) == "string" then
-            -- If subValues is a string, we will clear the specific subValue within the table
-            if type(metaData) == "table" then
-                metaData[subValues] = nil
-            else
-                return print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 is not a table! Cannot clear subValue ^5%s^7."):format(index, subValues))
-            end
-        elseif type(subValues) == "table" then
-            -- If subValues is a table, we will clear multiple subValues within the table
-            for i = 1, #subValues do
-                local subValue = subValues[i]
-                if type(subValue) == "string" then
-                    if type(metaData) == "table" then
-                        metaData[subValue] = nil
-                    else
-                        print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 is not a table! Cannot clear subValue ^5%s^7."):format(index, subValue))
-                    end
-                else
-                    print(("[^1ERROR^7] xPlayer.clearMeta subValues should contain ^5string^7, received ^5%s^7, skipping..."):format(type(subValue)))
-                end
-            end
+    if not subValues then
+        -- If no subValues is provided, we will clear the entire value in the metaData table
+        self.metadata[index] = nil
+    elseif type(subValues) == "string" then
+        -- If subValues is a string, we will clear the specific subValue within the table
+        if type(metaData) == "table" then
+            metaData[subValues] = nil
         else
-            return print(("[^1ERROR^7] xPlayer.clearMeta ^5subValues^7 should be ^5string^7 or ^5table^7, received ^5%s^7!"):format(type(subValues)))
+            return print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 is not a table! Cannot clear subValue ^5%s^7."):format(index, subValues))
         end
-
-        Player(self.source).state:set("metadata", self.metadata, true)
+    elseif type(subValues) == "table" then
+        -- If subValues is a table, we will clear multiple subValues within the table
+        for i = 1, #subValues do
+            local subValue = subValues[i]
+            if type(subValue) == "string" then
+                if type(metaData) == "table" then
+                    metaData[subValue] = nil
+                else
+                    print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 is not a table! Cannot clear subValue ^5%s^7."):format(index, subValue))
+                end
+            else
+                print(("[^1ERROR^7] xPlayer.clearMeta subValues should contain ^5string^7, received ^5%s^7, skipping..."):format(type(subValue)))
+            end
+        end
+    else
+        return print(("[^1ERROR^7] xPlayer.clearMeta ^5subValues^7 should be ^5string^7 or ^5table^7, received ^5%s^7!"):format(type(subValues)))
     end
 
-    for fnName, fn in pairs(targetOverrides) do
-        self[fnName] = fn(self)
-    end
+    Player(self.source).state:set("metadata", self.metadata, true)
+end
 
-    return self
+	for fnName, fn in pairs(targetOverrides) do
+		self[fnName] = fn(self)
+	end
+
+	return self
 end
