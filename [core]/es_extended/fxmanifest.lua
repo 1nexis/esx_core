@@ -5,7 +5,7 @@ fx_version 'adamant'
 game 'gta5'
 description 'ES Extended'
 lua54 'yes'
-version '1.10.3'
+version '1.10.5'
 
 shared_scripts {
 	'locale.lua',
